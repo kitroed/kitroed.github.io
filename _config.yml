@@ -1,0 +1,13 @@
+title: Kit Roed
+baseurl: "" # the subpath of your site, e.g. /blog
+url: "http://www.kitroed.com"
+twitter_username: kitroed
+github_username:  kitroed
+
+disqus_shortname: kitroed
+
+
+# Build settings
+markdown: kramdown
+
+theme: jekyll-theme-primer
