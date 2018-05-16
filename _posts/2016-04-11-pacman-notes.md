@@ -18,3 +18,7 @@ In case the list includes foreign packages, such as AUR packages, remove them fi
 To remove all the packages on your system that are not mentioned in the list.
 
     # pacman -Rsu $(comm -23 <(pacman -Qq | sort) <(sort pkglist))
+
+To clean out old packages stored in package cache, keeping previous version's package (`k1` = previous, `k2` = previous and one before, etc., `rvk1` = remove (verbose) keep 1).
+
+    # paccache -rvk1 
