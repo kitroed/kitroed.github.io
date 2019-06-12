@@ -130,7 +130,7 @@ Get latest branch info from remote and delete tracking branches no longer presen
 
     git fetch --prune
 
-Push local branch to remote and track (`--set-upstream-to`) (Note, no need to checkout branch you're pushing if specified in the command)
+Push local branch to remote and track (`--set-upstream`) (Note, no need to checkout branch you're pushing if specified in the command)
 
     git push -u origin <branch>
 
