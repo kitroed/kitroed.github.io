@@ -176,3 +176,17 @@ or use cherry-pick
     # delete it from master
     git checkout master
     git reset HEAD~ --hard
+
+Duplicate (mirror) an existing repository from one location to another
+
+    git clone --mirror <source-repository-url>
+
+(This makes a bare repository with the config `mirror = true` set.) To set the push location
+
+    cd <repository-to-mirror>.git
+    git remote set-url --push origin <mirror-dest-repostiory-url>
+
+Like bare clone, the mirror clone includes all branches and tags, but they'll be overwritten each time you fetch. To update from the mirror source, fetch then push:
+
+    git fetch --prune origin
+    git push --mirror
