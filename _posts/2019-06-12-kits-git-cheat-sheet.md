@@ -120,7 +120,7 @@ Push all tags to current default remote (not usually recommended)
 
     git push --tags
 
-Get a cool "tag plus number of commits plus short revision id" value for current head
+Get a cool "tag plus number of commits plus short revision id" value for current head (e.g. `3.2.1-14-g3ef206ca`)
 
     git describe --tags
 
@@ -148,7 +148,11 @@ After rebase is complete, stage changes and commit
 
 In the event of merge conflicts, abort with `git rebase --abort` and `git rebase --continue` after resolving.
 
-## Advanced
+## Advanced/Miscellaneous
+
+Get a short revision identifier for the currently checked out commit
+
+    git rev-parse --short HEAD
 
 Move last commit intended for a **new** branch from current branch to \<new-branch>
 
