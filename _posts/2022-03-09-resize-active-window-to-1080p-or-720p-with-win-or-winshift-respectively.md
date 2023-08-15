@@ -16,3 +16,18 @@ Create ahk file with the following two entries:
     WinMove, ahk_id %window%, , , , 1280, 720
     return
 ```
+
+Update for AHK v2
+
+```ahk
+#\:: ; [Win]+[\]
+{
+    WinMove(, , 1920, 1080, "A")
+}
+
+#+\:: ; [Win]+[Shift]+[\]
+{
+    WinMove(, , 1280, 720, "A")
+}
+
+```
