@@ -9,8 +9,8 @@ title: Keyboard shortcuts in Windows [Windows]
 | Press this key | To do this |
 |----------------|------------|
 | <kbd>Ctrl</kbd> + X | Cut the selected item. |
-| <kbd>Ctrl</kbd> + C (or <kbd>Ctrl</kbd> + Insert) | Copy the selected item. |
-| <kbd>Ctrl</kbd> + V (or <kbd>Shift</kbd> + Insert) | Paste the selected item. |
+| <kbd>Ctrl</kbd> + C (or <kbd>Ctrl</kbd> + <kbd>Insert</kbd>) | Copy the selected item. |
+| <kbd>Ctrl</kbd> + V (or <kbd>Shift</kbd> + <kbd>Insert</kbd>) | Paste the selected item. |
 | <kbd>Ctrl</kbd> + Z | Undo an action. |
 | <kbd>Alt</kbd> + <kbd>Tab</kbd> | Switch between open apps. |
 | <kbd>Alt</kbd> + <kbd>F4</kbd> | Close the active item, or exit the active app. |
@@ -136,8 +136,8 @@ title: Keyboard shortcuts in Windows [Windows]
 
 | Press this key | To do this |
 |----------------|------------|
-| <kbd>Ctrl</kbd> + C (or <kbd>Ctrl</kbd> + Insert) | Copy the selected text. |
-| <kbd>Ctrl</kbd> + V (or <kbd>Shift</kbd> + Insert) | Paste the selected text. |
+| <kbd>Ctrl</kbd> + C (or <kbd>Ctrl</kbd> + <kbd>Insert</kbd>) | Copy the selected text. |
+| <kbd>Ctrl</kbd> + V (or <kbd>Shift</kbd> + <kbd>Insert</kbd>) | Paste the selected text. |
 | <kbd>Ctrl</kbd> + M | <kbd>Enter</kbd> Mark mode. |
 | <kbd>Alt</kbd> + selection key | Begin selection in block mode. |
 | Arrow keys | Move the cursor in the direction specified. |
