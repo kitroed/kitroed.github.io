@@ -1,6 +1,10 @@
 ---
 title: Home Server Setup Notes
 ---
+
+* TOC
+{:toc}
+
 ## Key preparations
 
 - internal network is `enp2s0`
