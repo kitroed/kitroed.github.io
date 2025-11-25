@@ -1030,3 +1030,236 @@ docker exec -u www-data nextcloud php occ files:scan username
 ```
 
 **Note**: Files added/modified via SMB won't immediately appear in Nextcloud web interface until a scan is run. Consider setting up a cron job for periodic scans if you frequently use SMB.
+
+## Wallabag - Read It Later Service
+
+Self-hosted application for saving web pages to read later (like Pocket or Instapaper).
+
+### Create Wallabag directory
+
+```bash
+sudo mkdir -p /opt/wallabag
+sudo chown -R $USER:$USER /opt/wallabag
+cd /opt/wallabag
+```
+
+### Create docker-compose.yml
+
+```bash
+vim docker-compose.yml
+```
+
+```yaml
+services:
+  wallabag:
+    image: wallabag/wallabag
+    container_name: wallabag
+    environment:
+      - SYMFONY__ENV__DATABASE_DRIVER=pdo_sqlite
+      - SYMFONY__ENV__DATABASE_NAME=wallabag
+      - SYMFONY__ENV__DOMAIN_NAME=https://wallabag.yourdomain.com
+      - SYMFONY__ENV__SERVER_NAME="My Wallabag"
+    ports:
+      - "192.168.0.101:8082:80"
+    volumes:
+      - ./data:/var/www/wallabag/data
+      - ./images:/var/www/wallabag/web/assets/images
+    restart: unless-stopped
+```
+
+**Important**: Replace `https://wallabag.yourdomain.com` with your actual domain.
+
+**Note**: Using SQLite keeps everything simple—just one container, and the database is a single file in `./data`. Perfect for personal use.
+
+### Start Wallabag
+
+```bash
+docker compose up -d
+
+# Check logs
+docker logs -f wallabag
+```
+
+### Allow Wallabag through firewall
+
+If you haven't run the updated firewall script above (which now includes port 8082), add this rule:
+
+```bash
+sudo iptables -A INPUT -i enp2s0 -p tcp --dport 8082 -j ACCEPT
+sudo netfilter-persistent save
+```
+
+### Expose Wallabag via NPM
+
+1. Open NPM at `http://192.168.0.101:81`
+2. Go to "Proxy Hosts" → "Add Proxy Host"
+3. **Details tab:**
+   - Domain Names: `wallabag.yourdomain.com`
+   - Scheme: `http`
+   - Forward Hostname/IP: `192.168.0.101`
+   - Forward Port: `8082`
+   - Enable "Websockets Support"
+4. **SSL tab:**
+   - SSL Certificate: "Request a new SSL Certificate"
+   - Enable "Force SSL"
+   - Accept Let's Encrypt Terms
+5. Save
+
+### Access Wallabag
+
+Open `https://wallabag.yourdomain.com`.
+
+**Default credentials:**
+- Username: `wallabag`
+- Password: `wallabag`
+
+**Security note**: Change the password immediately after logging in.
+
+## RustDesk - Self-Hosted Remote Desktop
+
+Set up RustDesk server for secure, self-hosted remote desktop access.
+
+For more details, see the [official RustDesk server documentation](https://rustdesk.com/docs/en/self-host/).
+
+### Create RustDesk directory
+
+```bash
+sudo mkdir -p /opt/rustdesk
+sudo chown -R $USER:$USER /opt/rustdesk
+cd /opt/rustdesk
+```
+
+### Create docker-compose.yml
+
+```bash
+vim docker-compose.yml
+```
+
+```yaml
+services:
+  hbbs:
+    container_name: rustdesk-hbbs
+    image: rustdesk/rustdesk-server:latest
+    command: hbbs -r rustdesk.yourdomain.com:21117
+    volumes:
+      - ./data:/root
+    network_mode: host
+    restart: unless-stopped
+
+  hbbr:
+    container_name: rustdesk-hbbr
+    image: rustdesk/rustdesk-server:latest
+    command: hbbr
+    volumes:
+      - ./data:/root
+    network_mode: host
+    restart: unless-stopped
+```
+
+**Note**: Replace `rustdesk.yourdomain.com` with your actual domain.
+
+### Start RustDesk
+
+```bash
+docker compose up -d
+
+# Check logs
+docker logs -f rustdesk-hbbs
+docker logs -f rustdesk-hbbr
+```
+
+### Get the public key
+
+After starting, retrieve the public key needed for client configuration:
+
+```bash
+cat /opt/rustdesk/data/id_ed25519.pub
+```
+
+Save this key - you'll need it when configuring RustDesk clients.
+
+### Configure firewall
+
+Since the current firewall rules are messy and contain duplicates, use this script to safely reset them. This method sets the default policy to ACCEPT first to ensure you don't get locked out of SSH when flushing rules.
+
+**Important**: This script flushes ALL rules. It includes lines to restore access for SSH, Samba, Plex, and the Web UIs mentioned in this guide. It also restarts Docker to ensure Docker-managed rules (like WireGuard and NPM public ports) are correctly recreated.
+
+```bash
+# 1. Set default policy to ACCEPT to prevent lockout during flush
+sudo iptables -P INPUT ACCEPT
+sudo iptables -P FORWARD ACCEPT
+sudo iptables -P OUTPUT ACCEPT
+
+# 2. Flush all existing rules and delete custom chains
+sudo iptables -F
+sudo iptables -X
+
+# 3. Add base rules
+# Allow loopback
+sudo iptables -A INPUT -i lo -j ACCEPT
+# Allow established connections
+sudo iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+# Allow SSH
+sudo iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+
+# 4. Add LAN Services (enp2s0)
+# Samba (File Sharing)
+sudo iptables -A INPUT -i enp2s0 -p udp -m multiport --dports 137,138 -j ACCEPT
+sudo iptables -A INPUT -i enp2s0 -p tcp -m multiport --dports 139,445 -j ACCEPT
+# Plex (Media Server)
+sudo iptables -A INPUT -i enp2s0 -p tcp --dport 32400 -j ACCEPT
+# RustDesk (Remote Desktop)
+sudo iptables -A INPUT -i enp2s0 -p tcp -m multiport --dports 21115,21116,21117,21118,21119 -j ACCEPT
+sudo iptables -A INPUT -i enp2s0 -p udp --dport 21116 -j ACCEPT
+# Web UIs (NPM:81, ntfy:8080, Nextcloud:8081, Wallabag:8082, WG:51821)
+sudo iptables -A INPUT -i enp2s0 -p tcp -m multiport --dports 81,8080,8081,8082,51821 -j ACCEPT
+
+# 5. Add External Services (eno1)
+# Plex (Remote Access)
+sudo iptables -A INPUT -i eno1 -p tcp --dport 32400 -j ACCEPT
+# RustDesk (Remote Access)
+sudo iptables -A INPUT -i eno1 -p tcp -m multiport --dports 21115,21116,21117,21118,21119 -j ACCEPT
+sudo iptables -A INPUT -i eno1 -p udp --dport 21116 -j ACCEPT
+
+# 6. Restart Docker to recreate Docker chains and rules
+# This handles WireGuard (51820) and NPM (80/443) automatically
+sudo systemctl restart docker
+
+# 7. Set default policy back to DROP
+sudo iptables -P INPUT DROP
+
+# 8. Save rules
+sudo netfilter-persistent save
+```
+
+**Note**: Since your server has a direct internet connection via `eno1`, no router port forwarding is needed. The firewall rules above allow direct access from the internet.
+
+### Configure RustDesk clients
+
+On each device you want to control or connect from:
+
+1. Download and install RustDesk from [https://rustdesk.com](https://rustdesk.com)
+2. Open RustDesk settings
+3. Click "Network" → "ID Server"
+4. Set ID Server to: `rustdesk.yourdomain.com`
+5. Set Relay Server to: `rustdesk.yourdomain.com`
+6. Click "Key" and paste the public key from earlier
+7. Click "Apply"
+
+### Usage
+
+**To allow someone to connect to you:**
+
+1. Open RustDesk
+2. Share your ID and password with the remote user
+3. They enter your ID and password in their RustDesk client
+
+**To connect to another device:**
+
+1. Open RustDesk
+2. Enter the remote device's ID
+3. Click "Connect"
+4. Enter the password when prompted
+
+**Note**: The basic `rustdesk/rustdesk-server` image does not include a web admin console. Client management is done directly in the RustDesk app. If you need a web UI, consider [RustDesk Server Pro](https://rustdesk.com/pricing.html) (paid) or community projects like [rustdesk-api-server](https://github.com/kingmo888/rustdesk-api-server).
+
