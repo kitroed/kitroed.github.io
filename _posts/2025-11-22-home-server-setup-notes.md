@@ -1278,11 +1278,18 @@ docker logs -f immich_server
    - Forward Hostname/IP: `192.168.0.101`
    - Forward Port: `2283`
    - Enable "Websockets Support"
-4. **SSL tab:**
+4. **Advanced tab:**
+   - In "Custom Nginx Configuration" box, add:
+     ```nginx
+     client_max_body_size 0;
+     proxy_read_timeout 600s;
+     proxy_send_timeout 600s;
+     send_timeout 600s;
+5. **SSL tab:**
    - SSL Certificate: "Request a new SSL Certificate"
    - Enable "Force SSL"
    - Accept Let's Encrypt Terms
-5. Save
+6. Save
 
 ### Access Immich
 
@@ -1294,7 +1301,7 @@ Create the admin account on first login.
 
 Download the Immich app for iOS or Android and connect to your server URL (`https://photos.yourdomain.com`).
 
-### Troubleshooting: System Freeze
+### Troubleshooting: System Freeze (optional, I didn't do this)
 
 If the system locks up during `docker compose up -d`, it's likely the **Machine Learning** container consuming all CPU resources. The i5-8500T has 6 cores, and Immich may try to use them all.
 
