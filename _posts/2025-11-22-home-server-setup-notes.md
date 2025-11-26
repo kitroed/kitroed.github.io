@@ -442,19 +442,20 @@ Mount an external USB drive at `/srv/share` for Samba shares and Plex library.
 
 ```bash
 lsblk
+# Should show sdb as 14T
 ```
 
 2. Format the drive with ext4:
 
 ```bash
-sudo mkfs.ext4 /dev/sdX1
+sudo mkfs.ext4 /dev/sdb1
 ```
 
 3. Create mount point and get UUID:
 
 ```bash
 sudo mkdir -p /srv/share
-sudo blkid /dev/sdX1
+sudo blkid /dev/sdb1
 ```
 
 4. Add to `/etc/fstab` for automatic mounting:
@@ -1182,7 +1183,134 @@ cat /opt/rustdesk/data/id_ed25519.pub
 
 Save this key - you'll need it when configuring RustDesk clients.
 
-### Configure firewall
+### Configure RustDesk clients
+
+On each device you want to control or connect from:
+
+1. Download and install RustDesk from [https://rustdesk.com](https://rustdesk.com)
+2. Open RustDesk settings
+3. Click "Network" → "ID Server"
+4. Set ID Server to: `rustdesk.yourdomain.com`
+5. Set Relay Server to: `rustdesk.yourdomain.com`
+6. Click "Key" and paste the public key from earlier
+7. Click "Apply"
+
+### Usage
+
+**To allow someone to connect to you:**
+
+1. Open RustDesk
+2. Share your ID and password with the remote user
+3. They enter your ID and password in their RustDesk client
+
+**To connect to another device:**
+
+1. Open RustDesk
+2. Enter the remote device's ID
+3. Click "Connect"
+4. Enter the password when prompted
+
+## Immich - Self-Hosted Photo & Video Backup
+
+High performance self-hosted photo and video management solution.
+
+### Create Immich directory
+
+```bash
+sudo mkdir -p /opt/immich
+sudo chown -R $USER:$USER /opt/immich
+cd /opt/immich
+```
+
+### Download configuration files
+
+Download the recommended `docker-compose.yml` and `.env` files:
+
+```bash
+wget -O docker-compose.yml https://github.com/immich-app/immich/releases/latest/download/docker-compose.yml
+wget -O .env https://github.com/immich-app/immich/releases/latest/download/example.env
+```
+
+### Configure environment
+
+Edit the `.env` file to configure your settings:
+
+```bash
+vim .env
+```
+
+Key settings to adjust:
+- `UPLOAD_LOCATION`: Set this to a path with plenty of storage. Since we have a large external drive mounted at `/srv/share`, let's use that.
+- `DB_PASSWORD`: Set a secure password for the database.
+- `TZ`: Set your timezone (e.g., `America/Chicago`).
+
+Create the upload directory:
+
+```bash
+sudo mkdir -p /srv/share/Immich
+sudo chown -R $USER:$USER /srv/share/Immich
+```
+
+Then update `.env`:
+
+```ini
+UPLOAD_LOCATION=/srv/share/Immich
+DB_PASSWORD=YourSecurePassword
+TZ=America/Chicago
+```
+
+### Start Immich
+
+```bash
+docker compose up -d
+
+# Check logs
+docker logs -f immich_server
+```
+
+### Expose Immich via NPM
+
+1. Open NPM at `http://192.168.0.101:81`
+2. Go to "Proxy Hosts" → "Add Proxy Host"
+3. **Details tab:**
+   - Domain Names: `photos.yourdomain.com`
+   - Scheme: `http`
+   - Forward Hostname/IP: `192.168.0.101`
+   - Forward Port: `2283`
+   - Enable "Websockets Support"
+4. **SSL tab:**
+   - SSL Certificate: "Request a new SSL Certificate"
+   - Enable "Force SSL"
+   - Accept Let's Encrypt Terms
+5. Save
+
+### Access Immich
+
+Open `https://photos.yourdomain.com` or `http://192.168.0.101:2283`.
+
+Create the admin account on first login.
+
+### Mobile Apps
+
+Download the Immich app for iOS or Android and connect to your server URL (`https://photos.yourdomain.com`).
+
+### Troubleshooting: System Freeze
+
+If the system locks up during `docker compose up -d`, it's likely the **Machine Learning** container consuming all CPU resources. The i5-8500T has 6 cores, and Immich may try to use them all.
+
+To fix this, add resource limits to `docker-compose.yml`:
+
+```yaml
+  immich-machine-learning:
+    # ... existing config ...
+    deploy:
+      resources:
+        limits:
+          cpus: '4'  # Leave 2 cores for the system
+          memory: 8G
+```
+
+## Final Firewall Configuration
 
 Since the current firewall rules are messy and contain duplicates, use this script to safely reset them. This method sets the default policy to ACCEPT first to ensure you don't get locked out of SSH when flushing rules.
 
@@ -1215,8 +1343,8 @@ sudo iptables -A INPUT -i enp2s0 -p tcp --dport 32400 -j ACCEPT
 # RustDesk (Remote Desktop)
 sudo iptables -A INPUT -i enp2s0 -p tcp -m multiport --dports 21115,21116,21117,21118,21119 -j ACCEPT
 sudo iptables -A INPUT -i enp2s0 -p udp --dport 21116 -j ACCEPT
-# Web UIs (NPM:81, ntfy:8080, Nextcloud:8081, Wallabag:8082, WG:51821)
-sudo iptables -A INPUT -i enp2s0 -p tcp -m multiport --dports 81,8080,8081,8082,51821 -j ACCEPT
+# Web UIs (NPM:81, ntfy:8080, Nextcloud:8081, Wallabag:8082, WG:51821, Immich:2283)
+sudo iptables -A INPUT -i enp2s0 -p tcp -m multiport --dports 81,8080,8081,8082,51821,2283 -j ACCEPT
 
 # 5. Add External Services (eno1)
 # Plex (Remote Access)
@@ -1238,32 +1366,42 @@ sudo netfilter-persistent save
 
 **Note**: Since your server has a direct internet connection via `eno1`, no router port forwarding is needed. The firewall rules above allow direct access from the internet.
 
-### Configure RustDesk clients
+## Verifying System Health
 
-On each device you want to control or connect from:
+If the system freezes or reboots, use these commands to verify everything is back up and running correctly.
 
-1. Download and install RustDesk from [https://rustdesk.com](https://rustdesk.com)
-2. Open RustDesk settings
-3. Click "Network" → "ID Server"
-4. Set ID Server to: `rustdesk.yourdomain.com`
-5. Set Relay Server to: `rustdesk.yourdomain.com`
-6. Click "Key" and paste the public key from earlier
-7. Click "Apply"
+### Check Docker Containers
 
-### Usage
+Ensure all containers are running and healthy:
 
-**To allow someone to connect to you:**
+```bash
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+```
 
-1. Open RustDesk
-2. Share your ID and password with the remote user
-3. They enter your ID and password in their RustDesk client
+### Monitor Resource Usage
 
-**To connect to another device:**
+Check if any container (specifically `immich_machine_learning`) is consuming excessive resources:
 
-1. Open RustDesk
-2. Enter the remote device's ID
-3. Click "Connect"
-4. Enter the password when prompted
+```bash
+docker stats
+```
 
-**Note**: The basic `rustdesk/rustdesk-server` image does not include a web admin console. Client management is done directly in the RustDesk app. If you need a web UI, consider [RustDesk Server Pro](https://rustdesk.com/pricing.html) (paid) or community projects like [rustdesk-api-server](https://github.com/kingmo888/rustdesk-api-server).
+If `immich_machine_learning` is using 100% of multiple cores for extended periods, consider applying the resource limits mentioned in the Immich section.
+
+### Check System Logs
+
+Look for any system-level errors that might have occurred during the freeze:
+
+```bash
+sudo journalctl -p 3 -xb
+```
+
+### Verify Network & Firewall
+
+Ensure network interfaces are up and firewall rules are loaded:
+
+```bash
+networkctl status
+sudo iptables -L -v -n | head
+```
 
