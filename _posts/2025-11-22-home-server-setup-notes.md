@@ -438,58 +438,64 @@ Now you can manage WireGuard clients remotely at `https://wireguard.yourdomain.c
 
 Mount an external USB drive at `/srv/share` for Samba shares and Plex library.
 
-1. Plug in the USB drive and identify it:
+### Identify and format the drive
+
+Plug in the USB drive and identify it:
 
 ```bash
 lsblk
 # Should show sdb as 14T
 ```
 
-2. Format the drive with ext4:
+Format the drive with ext4:
 
 ```bash
 sudo mkfs.ext4 /dev/sdb1
 ```
 
-3. Create mount point and get UUID:
+### Mount the drive
+
+Create mount point and get UUID:
 
 ```bash
 sudo mkdir -p /srv/share
 sudo blkid /dev/sdb1
 ```
 
-4. Add to `/etc/fstab` for automatic mounting:
+Add to `/etc/fstab` for automatic mounting:
 
 ```bash
 UUID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx /srv/share ext4 defaults 0 2
 ```
 
-5. Mount and set permissions:
+Mount and set permissions:
 
 ```bash
 sudo mount -a
 sudo chown -R $USER:$USER /srv/share
 ```
 
-6. Verify it's mounted:
+Verify it's mounted:
 
 ```bash
 df -h | grep /srv/share
 ```
 
-7. Install and configure Samba to share `/srv/share` as needed.
+### Install and configure Samba
+
+Install Samba to share `/srv/share`:
 
 ```bash
 sudo apt install samba
 ```
 
-8. Edit Samba config:
+Edit Samba config:
 
 ```bash
 sudo vim /etc/samba/smb.conf
 ```
 
-and Add the following share definition at the end of the file:
+Add the following share definition at the end of the file:
 
 ```ini
 [share]
@@ -499,13 +505,17 @@ and Add the following share definition at the end of the file:
    guest ok = no
 ```
 
-9. Create Samba user:
+### Create Samba user
+
+Create Samba user:
 
 ```bash
 sudo smbpasswd -a $USER
 ```
 
-10. Adjust firewall to allow Samba:
+### Configure firewall
+
+Adjust firewall to allow Samba:
 
 ```bash
 # Allow Samba on LAN
@@ -517,7 +527,7 @@ sudo iptables -A INPUT -i eno1 -p udp -m multiport --dports 137,138 -j DROP
 sudo iptables -A INPUT -i eno1 -p tcp -m multiport --dports 139,445 -j DROP
 ```
 
-and Make it persistent across reboots:
+Make it persistent across reboots:
 
 ```bash
 sudo netfilter-persistent save
