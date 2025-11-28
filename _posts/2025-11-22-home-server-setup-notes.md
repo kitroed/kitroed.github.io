@@ -1310,6 +1310,140 @@ To fix this, add resource limits to `docker-compose.yml`:
           memory: 8G
 ```
 
+## Calibre-Web - Ebook Library Access
+
+Use desktop Calibre for editing/conversion; use Calibre-Web here for browsing/downloading. Sync the library from your desktop to the server; treat the server copy as read-mostly.
+
+### Create library directory
+
+```bash
+sudo mkdir -p /srv/share/CalibreLibrary
+sudo chown -R $USER:$USER /srv/share/CalibreLibrary
+```
+
+### Deploy Calibre-Web
+
+```bash
+sudo mkdir -p /opt/calibre-web
+sudo chown -R $USER:$USER /opt/calibre-web
+cd /opt/calibre-web
+```
+
+Create compose file:
+
+```bash
+vim docker-compose.yml
+```
+
+```yaml
+services:
+  calibre-web:
+    image: lscr.io/linuxserver/calibre-web:latest
+    container_name: calibre-web
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Chicago
+      - DOCKER_MODS=linuxserver/mods:universal-calibre
+    volumes:
+      - /opt/calibre-web/config:/config
+      - /srv/share/CalibreLibrary:/books
+    ports:
+      - "192.168.0.101:8083:8083"
+    restart: unless-stopped
+```
+
+Start:
+
+```bash
+docker compose up -d
+
+# Check logs
+docker logs -f calibre-web
+```
+
+### Access Calibre-Web
+
+Open `http://192.168.0.101:8083` from your LAN.
+
+First-run setup:
+- Set library path to: `/books`
+- Create admin user
+
+### Sync from desktop Calibre
+
+On your desktop (after closing Calibre), run:
+
+```bash
+rsync -avz --delete "/path/to/DesktopCalibreLibrary/" user@yourserver:/srv/share/CalibreLibrary/
+```
+
+Important:
+- `--delete` removes books deleted locally (omit if you want to keep server copies)
+- Run only when Calibre desktop is closed to avoid database corruption
+
+After sync, refresh the database in Calibre-Web (Settings → Re-scan Library).
+
+### Optional sync script
+
+Create `sync-calibre.sh` on your desktop:
+
+```bash
+#!/usr/bin/env bash
+set -e
+SRC="/path/to/DesktopCalibreLibrary/"
+DEST="user@yourserver:/srv/share/CalibreLibrary/"
+rsync -avz --delete "$SRC" "$DEST"
+echo "Sync complete. Refresh Calibre-Web database."
+```
+
+Make executable:
+
+```bash
+chmod +x sync-calibre.sh
+```
+
+Run manually after editing books in desktop Calibre.
+
+### LAN firewall rule
+
+```bash
+sudo iptables -A INPUT -i enp2s0 -p tcp --dport 8083 -j ACCEPT
+sudo netfilter-persistent save
+```
+
+### Optional reverse proxy via NPM
+
+For external access:
+
+1. Open NPM at `http://192.168.0.101:81`
+2. Go to "Proxy Hosts" → "Add Proxy Host"
+3. **Details tab:**
+   - Domain Names: `books.yourdomain.com`
+   - Scheme: `http`
+   - Forward Hostname/IP: `192.168.0.101`
+   - Forward Port: `8083`
+   - Enable "Websockets Support"
+4. **SSL tab:**
+   - SSL Certificate: "Request a new SSL Certificate"
+   - Enable "Force SSL"
+   - Accept Let's Encrypt Terms
+5. Save
+
+### Important notes
+
+- **Only edit with desktop Calibre**. Do not run Calibre GUI container simultaneously.
+- **Avoid syncing while Calibre is open** (metadata.db may be mid-write).
+- Calibre-Web is read-only by design—use it for browsing/downloading, not editing.
+
+### Summary workflow
+
+1. Edit/manage books on desktop Calibre
+2. Close Calibre
+3. Run rsync push
+4. Refresh Calibre-Web database
+5. Browse/download via web interface
+
 ## Final Firewall Configuration
 
 Since the current firewall rules are messy and contain duplicates, use this script to safely reset them. This method sets the default policy to ACCEPT first to ensure you don't get locked out of SSH when flushing rules.
