@@ -1444,6 +1444,108 @@ For external access:
 4. Refresh Calibre-Web database
 5. Browse/download via web interface
 
+## Watchtower - Container Update Monitoring
+
+Watchtower monitors your Docker containers for updates and can optionally apply them automatically. We'll use **monitor-only mode** to get notifications without automatic updates, giving you control over when to update critical services.
+
+### Create Watchtower directory
+
+```bash
+sudo mkdir -p /opt/watchtower
+sudo chown -R $USER:$USER /opt/watchtower
+cd /opt/watchtower
+```
+
+### Create docker-compose.yml
+
+```bash
+vim docker-compose.yml
+```
+
+```yaml
+services:
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    environment:
+      - TZ=America/Chicago
+      - WATCHTOWER_MONITOR_ONLY=true
+      - WATCHTOWER_NOTIFICATIONS=shoutrrr://ntfy://192.168.0.101:8080/watchtower?title=Watchtower
+      - WATCHTOWER_NOTIFICATION_URL_VERIFY=false
+      - WATCHTOWER_SCHEDULE=0 0 4 * * *  # Check daily at 4 AM
+      - WATCHTOWER_CLEANUP=true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+```
+
+**Configuration explained:**
+- `WATCHTOWER_MONITOR_ONLY=true`: Only notify, don't update
+- `WATCHTOWER_NOTIFICATIONS`: Send notifications via ntfy
+- `WATCHTOWER_SCHEDULE`: Cron schedule (4 AM daily)
+- `WATCHTOWER_CLEANUP=true`: Remove old images after updates (if you enable auto-update later)
+
+### Start Watchtower
+
+```bash
+docker compose up -d
+
+# Check logs
+docker logs -f watchtower
+```
+
+### Subscribe to notifications
+
+In ntfy (web or mobile app), subscribe to the `watchtower` topic to receive update notifications.
+
+### Optional: Enable auto-update for specific containers
+
+If you want to auto-update only certain containers, modify the Watchtower config:
+
+```yaml
+environment:
+  - WATCHTOWER_LABEL_ENABLE=true  # Only update labeled containers
+```
+
+Then add labels to containers you trust to auto-update (in their docker-compose.yml):
+
+```yaml
+services:
+  ntfy:
+    image: binwiederhier/ntfy:latest
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+```
+
+**Recommended for auto-update:**
+- ntfy
+- Wallabag
+- Calibre-Web
+
+**NOT recommended for auto-update:**
+- Nextcloud (database migrations need testing)
+- Plex (library compatibility)
+- Immich (breaking changes common)
+- NPM (reverse proxy config changes)
+
+### Manual update workflow
+
+When you receive a notification:
+
+1. Check the container's changelog/release notes
+2. Test the update on LAN first
+3. Update manually:
+   ```bash
+   cd /opt/service-name
+   docker compose pull
+   docker compose up -d
+   ```
+4. Verify the service still works
+5. Clean up old images:
+   ```bash
+   docker image prune -a
+   ```
+
 ## Final Firewall Configuration
 
 Since the current firewall rules are messy and contain duplicates, use this script to safely reset them. This method sets the default policy to ACCEPT first to ensure you don't get locked out of SSH when flushing rules.
