@@ -797,6 +797,22 @@ Verify it's mounted:
 df -h | grep nextcloud
 ```
 
+### Give your user read access
+
+Add your user to the www-data group to access the Nextcloud drive:
+
+```bash
+sudo usermod -a -G www-data $USER
+```
+
+Then log out and back in, or run:
+
+```bash
+newgrp www-data
+```
+
+This allows you to read files on the Nextcloud drive. The `force user/group` settings in the Samba configuration ensure any files created via SMB are properly owned by `www-data` for Nextcloud to use.
+
 ### Create Nextcloud directory
 
 ```bash
@@ -933,31 +949,17 @@ Now you can access Nextcloud at `https://nextcloud.yourdomain.com` with all your
 
 ### Add Samba share for direct file access
 
-For native file system access to Nextcloud data, add a Samba container sharing the same data directory.
+For native file system access to Nextcloud data, add another share to the existing Samba configuration.
 
-Create Samba configuration directory:
-
-```bash
-sudo mkdir -p /opt/samba
-sudo chown -R $USER:$USER /opt/samba
-cd /opt/samba
-```
-
-Create `smb.conf`:
+Edit the Samba config:
 
 ```bash
-vim smb.conf
+sudo vim /etc/samba/smb.conf
 ```
+
+Add the Nextcloud share definition at the end of the file:
 
 ```ini
-[global]
-workgroup = WORKGROUP
-server string = Nextcloud Samba Server
-security = user
-map to guest = Bad User
-log file = /var/log/samba/log.%m
-max log size = 50
-
 [nextcloud]
 path = /srv/nextcloud
 browseable = yes
@@ -970,41 +972,22 @@ create mask = 0664
 directory mask = 0775
 ```
 
-Create `docker-compose.yml`:
+Create a system user and Samba user for Nextcloud access:
 
 ```bash
-vim docker-compose.yml
+# Create a system user (no login, no home directory)
+sudo useradd -r -s /usr/sbin/nologin -M nextcloud
+
+# Create Samba password for the nextcloud user
+sudo smbpasswd -a nextcloud
 ```
 
-```yaml
-services:
-  samba:
-    image: dperson/samba:latest
-    container_name: samba
-    restart: unless-stopped
-    ports:
-      - "192.168.0.101:139:139"
-      - "192.168.0.101:445:445"
-    volumes:
-      - /srv/nextcloud:/srv/nextcloud
-      - /opt/samba/smb.conf:/etc/samba/smb.conf
-    environment:
-      - TZ=America/Chicago
-      - USER=nextcloud;YourSecurePassword
-      - USERID=33    # www-data UID
-      - GROUPID=33   # www-data GID
-    command: '-s "nextcloud;/srv/nextcloud;yes;no;no;nextcloud"'
-```
+**Important**: Set a secure password when prompted.
 
-**Important**: Replace `YourSecurePassword` with a secure password.
-
-Start Samba:
+Restart Samba to apply changes:
 
 ```bash
-docker compose up -d
-
-# Check logs
-docker logs -f samba
+sudo systemctl restart smbd
 ```
 
 ### Access the share
