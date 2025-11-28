@@ -1469,10 +1469,12 @@ services:
     container_name: watchtower
     environment:
       - TZ=America/Chicago
+      - DOCKER_API_VERSION=1.44
       - WATCHTOWER_MONITOR_ONLY=true
-      - WATCHTOWER_NOTIFICATIONS=shoutrrr://ntfy://192.168.0.101:8080/watchtower?title=Watchtower
-      - WATCHTOWER_NOTIFICATION_URL_VERIFY=false
-      - WATCHTOWER_SCHEDULE=0 0 4 * * *  # Check daily at 4 AM
+      - WATCHTOWER_NOTIFICATION_URL=ntfy://192.168.0.101:8080/watchtower?scheme=http&title=Watchtower
+      - WATCHTOWER_NOTIFICATIONS=shoutrrr
+      - WATCHTOWER_NOTIFICATIONS_LEVEL=warn
+      - WATCHTOWER_SCHEDULE=0 0 17 * * *  # Check daily at 5 PM
       - WATCHTOWER_CLEANUP=true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
