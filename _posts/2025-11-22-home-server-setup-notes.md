@@ -1474,6 +1474,7 @@ services:
       - WATCHTOWER_NOTIFICATION_URL=ntfy://192.168.0.101:8080/watchtower?scheme=http&title=Watchtower
       - WATCHTOWER_NOTIFICATIONS=shoutrrr
       - WATCHTOWER_NOTIFICATIONS_LEVEL=warn
+      - WATCHTOWER_LOG_LEVEL=error
       - WATCHTOWER_SCHEDULE=0 0 17 * * *  # Check daily at 5 PM
       - WATCHTOWER_CLEANUP=true
     volumes:
@@ -1484,7 +1485,9 @@ services:
 **Configuration explained:**
 - `WATCHTOWER_MONITOR_ONLY=true`: Only notify, don't update
 - `WATCHTOWER_NOTIFICATIONS`: Send notifications via ntfy
-- `WATCHTOWER_SCHEDULE`: Cron schedule (4 AM daily)
+- `WATCHTOWER_NOTIFICATIONS_LEVEL=warn`: Only notify when updates are available (not on every scan)
+- `WATCHTOWER_LOG_LEVEL=error`: Suppress noisy warnings (e.g., digest-pinned images from Immich)
+- `WATCHTOWER_SCHEDULE`: Cron schedule (5 PM daily)
 - `WATCHTOWER_CLEANUP=true`: Remove old images after updates (if you enable auto-update later)
 
 ### Start Watchtower
