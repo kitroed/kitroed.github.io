@@ -227,6 +227,141 @@ services:
 
 The `dns` configuration is critical - it allows NPM to resolve and reach internal LAN services properly while still accessing the internet.
 
+## Default Landing Page
+
+Set up a simple default page for `yourdomain.com` and catch-all subdomains.
+
+### Create landing page directory
+
+```bash
+sudo mkdir -p /opt/default-page
+sudo chown -R $USER:$USER /opt/default-page
+cd /opt/default-page
+```
+
+### Create index.html
+
+```bash
+vim index.html
+```
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>yourdomain.com</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            text-align: center;
+            max-width: 600px;
+        }
+        h1 {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        p {
+            font-size: 1.5rem;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+        .subdomain {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            font-size: 1rem;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👋</h1>
+        <p>Nothing to see here.</p>
+        <div class="subdomain">yourdomain.com</div>
+    </div>
+</body>
+</html>
+```
+
+### Create robots.txt (deny crawlers)
+
+```bash
+vim robots.txt
+```
+
+```text
+User-agent: *
+Disallow: /
+```
+
+### Create docker-compose.yml
+
+```bash
+vim docker-compose.yml
+```
+
+```yaml
+services:
+  default-page:
+    image: nginx:alpine
+    container_name: default-page
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+      - ./robots.txt:/usr/share/nginx/html/robots.txt:ro
+    ports:
+      - "192.168.0.101:8090:80"
+    restart: unless-stopped
+```
+
+### Start the service
+
+```bash
+docker compose up -d
+
+# Check logs
+docker logs -f default-page
+```
+
+### Configure NPM proxy hosts
+
+1. Open NPM at `http://192.168.0.101:81`
+2. Add two proxy hosts:
+
+**For root domain:**
+- Domain Names: `yourdomain.com`
+- Scheme: `http`
+- Forward Hostname/IP: `192.168.0.101`
+- Forward Port: `8090`
+- SSL: Request new certificate, Force SSL
+
+**For catch-all subdomains:**
+- Domain Names: `yourdomain.com` (should show up once saved with *)
+- Scheme: `http`
+- Forward Hostname/IP: `192.168.0.101`
+- Forward Port: `8090`
+- SSL: Request new certificate, Force SSL
+
+Now any undefined subdomain will show the default page instead of an error.
+
 ## Dynamic DNS with Namecheap
 
 To keep your domain pointing to your external IP address, set up dynamic DNS updates.
