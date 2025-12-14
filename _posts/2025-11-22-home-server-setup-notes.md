@@ -1579,6 +1579,135 @@ For external access:
 4. Refresh Calibre-Web database
 5. Browse/download via web interface
 
+## Copyparty - Easy File Browsing & Sharing
+
+Lightweight file server for browsing and uploading files to your shared drives via web interface.
+
+### Create Copyparty directory
+
+```bash
+sudo mkdir -p /opt/copyparty
+sudo chown -R $USER:$USER /opt/copyparty
+cd /opt/copyparty
+```
+
+### Create Copyparty docker-compose.yml
+
+```bash
+vim docker-compose.yml
+```
+
+```yaml
+services:
+  copyparty:
+    image: copyparty/ac:latest
+    container_name: copyparty
+    user: "1000:1000"
+    ports:
+      - "192.168.0.101:3923:3923"
+    volumes:
+      - /srv/share:/mnt/share
+      - /opt/copyparty/config:/cfg
+    environment:
+      LD_PRELOAD: /usr/lib/libmimalloc-secure.so.NOPE
+      # enable mimalloc by replacing "NOPE" with "2" for a nice speed-boost (will use twice as much ram)
+
+      PYTHONUNBUFFERED: 1
+      # ensures log-messages are not delayed (but can reduce speed a tiny bit)
+
+    stop_grace_period: 15s  # thumbnailer is allowed to continue finishing up for 10s after the shutdown signal
+    healthcheck:
+      # hide it from logs with "/._" so it matches the default --lf-url filter 
+      test: ["CMD-SHELL", "wget --spider -q 127.0.0.1:3923/?reset=/._"]
+      interval: 1m
+      timeout: 2s
+      retries: 5
+      start_period: 15s
+
+    restart: unless-stopped
+```
+
+### Create configuration file
+
+Create the configuration file to define your shares and settings:
+
+```bash
+vim /opt/copyparty/config/copyparty.conf
+```
+
+```ini
+# not actually YAML but lets pretend:
+# -*- mode: yaml -*-
+# vim: ft=yaml:
+
+
+[global]
+  e2dsa  # enable file indexing and filesystem scanning
+  e2ts   # enable multimedia indexing
+  ansi   # enable colors in log messages (both in logfiles and stdout)
+
+  # q, lo: /cfg/log/%Y-%m%d.log   # log to file instead of docker
+
+  # p: 3939          # listen on another port
+  # ipa: 10.89.      # only allow connections from 10.89.*
+  # df: 16           # stop accepting uploads if less than 16 GB free disk space
+  # ver              # show copyparty version in the controlpanel
+  # grid             # show thumbnails/grid-view by default
+  # theme: 2         # monokai
+  # name: datasaver  # change the server-name that's displayed in the browser
+  # stats, nos-dup   # enable the prometheus endpoint, but disable the dupes counter (too slow)
+  # no-robots, force-js  # make it harder for search engines to read your server
+
+
+  /mnt/share           # share /mnt/share (path mounted from host's /srv/share)
+  accs:
+    rw: *      # everyone gets read-write access, but
+    rwmda: ed  # the user "ed" gets read-write-move-delete-admin
+
+```
+
+### Start Copyparty
+
+```bash
+docker compose up -d
+
+# Check logs
+docker logs -f copyparty
+```
+
+### Access Copyparty
+
+Open `http://192.168.0.101:3923` from your LAN.
+
+You'll see your `/srv/share` drive mounted as `/mnt/share` with full browsing and download capabilities.
+
+### LAN firewall rule
+
+```bash
+sudo iptables -A INPUT -i enp2s0 -p tcp --dport 3923 -j ACCEPT
+sudo netfilter-persistent save
+```
+
+### Optional: Expose via NPM
+
+For external access:
+
+1. Open NPM at `http://192.168.0.101:81`
+2. Go to "Proxy Hosts" → "Add Proxy Host"
+3. **Details tab:**
+   - Domain Names: `files.yourdomain.com`
+   - Scheme: `http`
+   - Forward Hostname/IP: `192.168.0.101`
+   - Forward Port: `3923`
+   - Enable "Websockets Support"
+4. **SSL tab:**
+   - SSL Certificate: "Request a new SSL Certificate"
+   - Enable "Force SSL"
+   - Accept Let's Encrypt Terms
+5. Save
+
+Now you can browse files at `https://files.yourdomain.com` from anywhere.
+
 ## Watchtower - Container Update Monitoring
 
 Watchtower monitors your Docker containers for updates and can optionally apply them automatically. We'll use **monitor-only mode** to get notifications without automatic updates, giving you control over when to update critical services.
