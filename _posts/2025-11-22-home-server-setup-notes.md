@@ -198,7 +198,7 @@ sudo chown -R $USER:$USER /opt/npm
 cd /opt/npm
 ```
 
-### Create docker-compose.yml
+### Create NPM docker-compose.yml
 
 ```yaml
 services:
@@ -313,7 +313,7 @@ User-agent: *
 Disallow: /
 ```
 
-### Create docker-compose.yml
+### Create default-page docker-compose.yml
 
 ```bash
 vim docker-compose.yml
@@ -445,7 +445,7 @@ sudo chown -R $USER:$USER /opt/wireguard
 cd /opt/wireguard
 ```
 
-### Create docker-compose.yml
+### Create WireGuard docker-compose.yml
 
 First, generate a password hash:
 
@@ -802,7 +802,7 @@ sudo chown -R $USER:$USER /opt/ntfy
 cd /opt/ntfy
 ```
 
-### Create docker-compose.yml
+### Create ntfy docker-compose.yml
 
 ```bash
 vim docker-compose.yml
@@ -956,7 +956,7 @@ sudo chown -R $USER:$USER /opt/nextcloud
 cd /opt/nextcloud
 ```
 
-### Create docker-compose.yml
+### Create Nextcloud docker-compose.yml
 
 ```bash
 vim docker-compose.yml
@@ -1176,7 +1176,7 @@ sudo chown -R $USER:$USER /opt/wallabag
 cd /opt/wallabag
 ```
 
-### Create docker-compose.yml
+### Create Wallabag docker-compose.yml
 
 ```bash
 vim docker-compose.yml
@@ -1262,7 +1262,7 @@ sudo chown -R $USER:$USER /opt/rustdesk
 cd /opt/rustdesk
 ```
 
-### Create docker-compose.yml
+### Create RustDesk docker-compose.yml
 
 ```bash
 vim docker-compose.yml
@@ -1720,7 +1720,7 @@ sudo chown -R $USER:$USER /opt/watchtower
 cd /opt/watchtower
 ```
 
-### Create docker-compose.yml
+### Create Watchtower docker-compose.yml
 
 ```bash
 vim docker-compose.yml
@@ -1848,8 +1848,8 @@ sudo iptables -A INPUT -i enp2s0 -p tcp --dport 32400 -j ACCEPT
 # RustDesk (Remote Desktop)
 sudo iptables -A INPUT -i enp2s0 -p tcp -m multiport --dports 21115,21116,21117,21118,21119 -j ACCEPT
 sudo iptables -A INPUT -i enp2s0 -p udp --dport 21116 -j ACCEPT
-# Web UIs (NPM:81, ntfy:8080, Nextcloud:8081, Wallabag:8082, WG:51821, Immich:2283)
-sudo iptables -A INPUT -i enp2s0 -p tcp -m multiport --dports 81,8080,8081,8082,51821,2283 -j ACCEPT
+# Web UIs (NPM:81, ntfy:8080, Nextcloud:8081, Wallabag:8082, WG:51821, Immich:2283, Calibre-Web:8083, Copyparty:3923)
+sudo iptables -A INPUT -i enp2s0 -p tcp -m multiport --dports 81,8080,8081,8082,51821,2283,8083,3923 -j ACCEPT
 
 # 5. Add External Services (eno1)
 # Plex (Remote Access)
