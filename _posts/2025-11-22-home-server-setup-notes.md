@@ -1645,6 +1645,9 @@ vim /opt/copyparty/config/copyparty.conf
   e2dsa  # enable file indexing and filesystem scanning
   e2ts   # enable multimedia indexing
   ansi   # enable colors in log messages (both in logfiles and stdout)
+  name: File Server  # name displayed in browser title/header
+  xff-src: lan  # trust X-Forwarded-For headers from private IPs (Docker/LAN)
+  rproxy: 1     # 1 hop behind reverse proxy
 
   # q, lo: /cfg/log/%Y-%m%d.log   # log to file instead of docker
 
