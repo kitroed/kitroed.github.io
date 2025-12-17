@@ -1711,6 +1711,72 @@ For external access:
 
 Now you can browse files at `https://files.yourdomain.com` from anywhere.
 
+## OpenSpeedTest - Network Speed Testing
+
+Self-hosted HTML5 network speed test server. No Flash or Java required.
+
+### Create OpenSpeedTest directory
+
+```bash
+sudo mkdir -p /opt/openspeedtest
+sudo chown -R $USER:$USER /opt/openspeedtest
+cd /opt/openspeedtest
+```
+
+### Create OpenSpeedTest docker-compose.yml
+
+```bash
+vim docker-compose.yml
+```
+
+```yaml
+services:
+  openspeedtest:
+    image: openspeedtest/latest
+    container_name: openspeedtest
+    ports:
+      - "192.168.0.101:3000:3000"
+    restart: unless-stopped
+```
+
+### Start OpenSpeedTest
+
+```bash
+docker compose up -d
+
+# Check logs
+docker logs -f openspeedtest
+```
+
+### Access OpenSpeedTest
+
+Open `http://192.168.0.101:3000` from your LAN.
+
+### LAN firewall rule
+
+```bash
+sudo iptables -A INPUT -i enp2s0 -p tcp --dport 3000 -j ACCEPT
+sudo netfilter-persistent save
+```
+
+### Optional: Expose via NPM
+
+For external access (to test speed from outside):
+
+1. Open NPM at `http://192.168.0.101:81`
+2. Go to "Proxy Hosts" → "Add Proxy Host"
+3. **Details tab:**
+   - Domain Names: `speed.yourdomain.com`
+   - Scheme: `http`
+   - Forward Hostname/IP: `192.168.0.101`
+   - Forward Port: `3000`
+   - Enable "Websockets Support"
+4. **SSL tab:**
+   - SSL Certificate: "Request a new SSL Certificate"
+   - Enable "Force SSL"
+   - Accept Let's Encrypt Terms
+5. Save
+
 ## Watchtower - Container Update Monitoring
 
 Watchtower monitors your Docker containers for updates and can optionally apply them automatically. We'll use **monitor-only mode** to get notifications without automatic updates, giving you control over when to update critical services.
@@ -1851,8 +1917,8 @@ sudo iptables -A INPUT -i enp2s0 -p tcp --dport 32400 -j ACCEPT
 # RustDesk (Remote Desktop)
 sudo iptables -A INPUT -i enp2s0 -p tcp -m multiport --dports 21115,21116,21117,21118,21119 -j ACCEPT
 sudo iptables -A INPUT -i enp2s0 -p udp --dport 21116 -j ACCEPT
-# Web UIs (NPM:81, ntfy:8080, Nextcloud:8081, Wallabag:8082, WG:51821, Immich:2283, Calibre-Web:8083, Copyparty:3923)
-sudo iptables -A INPUT -i enp2s0 -p tcp -m multiport --dports 81,8080,8081,8082,51821,2283,8083,3923 -j ACCEPT
+# Web UIs (NPM:81, ntfy:8080, Nextcloud:8081, Wallabag:8082, WG:51821, Immich:2283, Calibre-Web:8083, Copyparty:3923, OpenSpeedTest:3000)
+sudo iptables -A INPUT -i enp2s0 -p tcp -m multiport --dports 81,8080,8081,8082,51821,2283,8083,3923,3000 -j ACCEPT
 
 # 5. Add External Services (eno1)
 # Plex (Remote Access)
