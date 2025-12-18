@@ -1046,7 +1046,6 @@ Add Nextcloud to Nginx Proxy Manager for external access:
 4. **SSL tab:**
    - SSL Certificate: "Request a new SSL Certificate"
    - Enable "Force SSL"
-   - Enable "HTTP/2 Support"
    - Accept Let's Encrypt Terms
 5. Save
 
@@ -1413,6 +1412,7 @@ docker logs -f immich_server
      proxy_read_timeout 600s;
      proxy_send_timeout 600s;
      send_timeout 600s;
+     ```
 5. **SSL tab:**
    - SSL Certificate: "Request a new SSL Certificate"
    - Enable "Force SSL"
@@ -1565,20 +1565,6 @@ For external access:
    - Accept Let's Encrypt Terms
 5. Save
 
-### Important notes
-
-- **Only edit with desktop Calibre**. Do not run Calibre GUI container simultaneously.
-- **Avoid syncing while Calibre is open** (metadata.db may be mid-write).
-- Calibre-Web is read-only by design—use it for browsing/downloading, not editing.
-
-### Summary workflow
-
-1. Edit/manage books on desktop Calibre
-2. Close Calibre
-3. Run rsync push
-4. Refresh Calibre-Web database
-5. Browse/download via web interface
-
 ## Copyparty - Easy File Browsing & Sharing
 
 Lightweight file server for browsing and uploading files to your shared drives via web interface.
@@ -1708,8 +1694,6 @@ For external access:
    - Enable "Force SSL"
    - Accept Let's Encrypt Terms
 5. Save
-
-Now you can browse files at `https://files.yourdomain.com` from anywhere.
 
 ## OpenSpeedTest - Network Speed Testing
 
@@ -1908,7 +1892,7 @@ services:
       - WATCHTOWER_NOTIFICATIONS_LEVEL=warn
       - WATCHTOWER_SCHEDULE=0 0 17 * * *  # Check daily at 5 PM
       - WATCHTOWER_CLEANUP=true
-      - WATCHTOWER_DISABLE_CONTAINERS=immich_postgres,immich_machine_learning
+      - WATCHTOWER_DISABLE_CONTAINERS=immich_postgres,immich_machine_learning,immich_redis
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
@@ -2018,8 +2002,8 @@ sudo iptables -A INPUT -i enp2s0 -p tcp --dport 32400 -j ACCEPT
 # RustDesk (Remote Desktop)
 sudo iptables -A INPUT -i enp2s0 -p tcp -m multiport --dports 21115,21116,21117,21118,21119 -j ACCEPT
 sudo iptables -A INPUT -i enp2s0 -p udp --dport 21116 -j ACCEPT
-# Web UIs (NPM:81, ntfy:8080, Nextcloud:8081, Wallabag:8082, WG:51821, Immich:2283, Calibre-Web:8083, Copyparty:3923, OpenSpeedTest:3000)
-sudo iptables -A INPUT -i enp2s0 -p tcp -m multiport --dports 81,8080,8081,8082,51821,2283,8083,3923,3000 -j ACCEPT
+# Web UIs (NPM:81, ntfy:8080, Nextcloud:8081, Wallabag:8082, WG:51821, Immich:2283, Calibre-Web:8083, Copyparty:3923, OpenSpeedTest:3000, Netdata:19999)
+sudo iptables -A INPUT -i enp2s0 -p tcp -m multiport --dports 81,8080,8081,8082,51821,2283,8083,3923,3000,19999 -j ACCEPT
 
 # 5. Add External Services (eno1)
 # Plex (Remote Access)
