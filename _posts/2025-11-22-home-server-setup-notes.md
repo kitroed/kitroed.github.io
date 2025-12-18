@@ -1890,6 +1890,8 @@ Since the current firewall rules are messy and contain duplicates, use this scri
 
 **Important**: This script flushes ALL rules. It includes lines to restore access for SSH, Samba, Plex, and the Web UIs mentioned in this guide. It also restarts Docker to ensure Docker-managed rules (like WireGuard and NPM public ports) are correctly recreated.
 
+You can copy and paste the commands below, or save them to a file (e.g., `firewall.sh`) and run it with `sudo bash firewall.sh`.
+
 ```bash
 # 1. Set default policy to ACCEPT to prevent lockout during flush
 sudo iptables -P INPUT ACCEPT
@@ -1905,8 +1907,8 @@ sudo iptables -X
 sudo iptables -A INPUT -i lo -j ACCEPT
 # Allow established connections
 sudo iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-# Allow SSH
-sudo iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+# Allow SSH (LAN only)
+sudo iptables -A INPUT -i enp2s0 -p tcp --dport 22 -j ACCEPT
 
 # 4. Add LAN Services (enp2s0)
 # Samba (File Sharing)
