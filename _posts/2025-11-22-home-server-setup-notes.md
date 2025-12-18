@@ -1821,10 +1821,11 @@ docker logs -f netdata
 
 ### LAN firewall rule
 
-Since Netdata uses `host` networking, we must explicitly allow the port in iptables before we can access it.
+Since Netdata uses `host` networking, we must explicitly allow the port in iptables. We need to allow access from the LAN (`enp2s0`) for direct access, and from Docker (`br+`) so NPM can reach it.
 
 ```bash
 sudo iptables -A INPUT -i enp2s0 -p tcp --dport 19999 -j ACCEPT
+sudo iptables -A INPUT -i br+ -p tcp --dport 19999 -j ACCEPT
 sudo netfilter-persistent save
 ```
 
@@ -1990,6 +1991,9 @@ sudo iptables -X
 sudo iptables -A INPUT -i lo -j ACCEPT
 # Allow established connections
 sudo iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+# Allow Docker containers to communicate with host (Required for NPM -> Netdata)
+sudo iptables -A INPUT -i docker0 -j ACCEPT
+sudo iptables -A INPUT -i br+ -j ACCEPT
 # Allow SSH (LAN only)
 sudo iptables -A INPUT -i enp2s0 -p tcp --dport 22 -j ACCEPT
 
