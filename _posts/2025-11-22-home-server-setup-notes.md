@@ -1777,6 +1777,105 @@ For external access (to test speed from outside):
    - Accept Let's Encrypt Terms
 5. Save
 
+## Netdata - Real-time Performance Monitoring
+
+Real-time health monitoring and performance troubleshooting.
+
+### Create Netdata directory
+
+```bash
+sudo mkdir -p /opt/netdata
+sudo chown -R $USER:$USER /opt/netdata
+cd /opt/netdata
+```
+
+### Create Netdata docker-compose.yml
+
+```bash
+vim docker-compose.yml
+```
+
+```yaml
+services:
+  netdata:
+    image: netdata/netdata
+    container_name: netdata
+    pid: host
+    network_mode: host
+    restart: unless-stopped
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    volumes:
+      - netdataconfig:/etc/netdata
+      - netdatalib:/var/lib/netdata
+      - netdatacache:/var/cache/netdata
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      - /var/log:/host/var/log:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+volumes:
+  netdataconfig:
+  netdatalib:
+  netdatacache:
+```
+
+### Start Netdata
+
+```bash
+docker compose up -d
+
+# Check logs
+docker logs -f netdata
+```
+
+### LAN firewall rule
+
+Since Netdata uses `host` networking, we must explicitly allow the port in iptables before we can access it.
+
+```bash
+sudo iptables -A INPUT -i enp2s0 -p tcp --dport 19999 -j ACCEPT
+sudo netfilter-persistent save
+```
+
+### Access Netdata
+
+Open `http://192.168.0.101:19999` from your LAN.
+
+### Optional: Expose via NPM (Securely)
+
+**Security Warning**: Netdata has no default password. Do not expose it to the internet without adding authentication via NPM Access Lists.
+
+1. **Create an Access List in NPM:**
+   - Open NPM at `http://192.168.0.101:81`
+   - Go to **Access Lists** → "Add Access List"
+   - Name: `Admin Access`
+   - **Authorization** tab: Add a Username and Password
+   - Save
+
+2. **Create Proxy Host:**
+   - Go to "Proxy Hosts" → "Add Proxy Host"
+   - **Details tab:**
+     - Domain Names: `monitor.yourdomain.com`
+     - Scheme: `http`
+     - Forward Hostname/IP: `192.168.0.101`
+     - Forward Port: `19999`
+     - **Access List**: Select `Admin Access` (This is critical!)
+     - Enable "Websockets Support"
+   - **SSL tab:**
+     - SSL Certificate: "Request a new SSL Certificate"
+     - Enable "Force SSL"
+     - Accept Let's Encrypt Terms
+   - Save
+
+Now, when you visit `https://monitor.yourdomain.com`, you'll be prompted for the username and password you set up in the Access List.
+
 ## Watchtower - Container Update Monitoring
 
 Watchtower monitors your Docker containers for updates and can optionally apply them automatically. We'll use **monitor-only mode** to get notifications without automatic updates, giving you control over when to update critical services.
