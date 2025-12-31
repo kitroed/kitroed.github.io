@@ -1916,6 +1916,17 @@ docker compose up -d
 docker logs -f watchtower
 ```
 
+### Triggering a Manual Check
+
+If you want to run Watchtower immediately to check for updates without waiting for the schedule:
+
+```bash
+cd /opt/watchtower
+docker compose run --rm watchtower --run-once
+```
+
+This will start a temporary instance that runs a single check, outputs the results to your terminal, and then exits. The `--rm` flag ensures the temporary container is automatically deleted after it finishes, so there is no cleanup required.
+
 ### Subscribe to notifications
 
 In ntfy (web or mobile app), subscribe to the `watchtower` topic to receive update notifications.
