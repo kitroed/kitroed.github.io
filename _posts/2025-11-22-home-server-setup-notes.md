@@ -1890,7 +1890,7 @@ services:
       - WATCHTOWER_MONITOR_ONLY=true
       - WATCHTOWER_NOTIFICATION_URL=ntfy://192.168.0.101:8080/watchtower?scheme=http&title=Watchtower
       - WATCHTOWER_NOTIFICATIONS=shoutrrr
-      - WATCHTOWER_NOTIFICATIONS_LEVEL=warn
+      - WATCHTOWER_NOTIFICATIONS_LEVEL=info
       - WATCHTOWER_SCHEDULE=0 0 17 * * *  # Check daily at 5 PM
       - WATCHTOWER_CLEANUP=true
       - WATCHTOWER_DISABLE_CONTAINERS=immich_postgres,immich_machine_learning,immich_redis
@@ -1902,7 +1902,7 @@ services:
 **Configuration explained:**
 - `WATCHTOWER_MONITOR_ONLY=true`: Only notify, don't update
 - `WATCHTOWER_NOTIFICATIONS`: Send notifications via ntfy
-- `WATCHTOWER_NOTIFICATIONS_LEVEL=warn`: Only notify when updates are available (not on every scan)
+- `WATCHTOWER_NOTIFICATIONS_LEVEL=info`: Notify when updates are found (standard log level for findings)
 - `WATCHTOWER_DISABLE_CONTAINERS`: Exclude dependency containers (Immich's postgres and machine-learning) from monitoring
 - `WATCHTOWER_SCHEDULE`: Cron schedule (5 PM daily)
 - `WATCHTOWER_CLEANUP=true`: Remove old images after updates (if you enable auto-update later)
@@ -2028,6 +2028,76 @@ sudo netfilter-persistent save
 ```
 
 **Note**: Since your server has a direct internet connection via `eno1`, no router port forwarding is needed. The firewall rules above allow direct access from the internet.
+
+## Moving Docker Data to /srv
+
+If like me, you used Debian's default "Server" partioning scheme on a 1TB drive, your `/var` partition is small (22GB) and filling up (100% usage), while `/srv` has plenty of space (800GB+). Since Docker stores images and containers in `/var/lib/docker` by default, we should move this to `/srv`.
+
+### 1. Stop Docker
+
+```bash
+sudo systemctl stop docker
+sudo systemctl stop docker.socket
+```
+
+### 2. Create new directory
+
+```bash
+sudo mkdir -p /srv/docker
+```
+
+### 3. Configure Docker to use new path
+
+Create or edit the daemon config:
+
+```bash
+sudo vim /etc/docker/daemon.json
+```
+
+Add the `data-root` configuration. If the file is empty, paste this:
+
+```json
+{
+  "data-root": "/srv/docker"
+}
+```
+
+If the file already exists, just add the line inside the brackets (don't forget the comma if needed).
+
+### 4. Move existing data
+
+Copy all existing Docker data to the new location:
+
+```bash
+sudo rsync -aqxP /var/lib/docker/ /srv/docker/
+```
+
+### 5. Start Docker
+
+```bash
+sudo systemctl start docker
+```
+
+### 6. Verify and clean up
+
+Check that Docker is using the new path:
+
+```bash
+docker info | grep "Docker Root Dir"
+# Should output: Docker Root Dir: /srv/docker
+```
+
+Check that your containers are running:
+
+```bash
+docker ps
+```
+
+**Only after verifying everything works**, remove the old data to free up space in `/var`:
+
+```bash
+sudo rm -rf /var/lib/docker
+```
 
 ## Verifying System Health
 
