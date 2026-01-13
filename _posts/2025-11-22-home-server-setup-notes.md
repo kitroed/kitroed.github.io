@@ -599,8 +599,12 @@ sudo blkid /dev/sdb1
 
 Add to `/etc/fstab` for automatic mounting:
 
+**The Recommended Change: x-systemd.automount**
+
+Instead of a "static" mount that stays active forever, you should use systemd automount. This tells Linux: "Don't worry about this drive right now, but the second any program (like Plex) tries to look inside `/srv/share`, mount it immediately."
+
 ```bash
-UUID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx /srv/share ext4 defaults 0 2
+UUID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx /srv/share ext4 defaults,nofail,x-systemd.automount,x-systemd.idle-timeout=300 0 2
 ```
 
 Mount and set permissions:
@@ -698,7 +702,8 @@ services:
       - PLEX_GID=1000
     volumes:
       - /opt/plex/config:/config
-      - /srv/share/Library:/data
+      # :rslave ensures the container follows the host's mount/unmount events
+      - /srv/share/Library:/data:rslave
     devices:
       - /dev/dri:/dev/dri  # Intel QuickSync hardware transcoding (i5-8500T)
     restart: unless-stopped
@@ -706,6 +711,7 @@ services:
 
 **Note:**
 
+- The `:rslave` option on the data volume is included because `/srv/share` is an external mount point. This ensures that if the drive is remounted on the host, the change propagates to the container.
 - Using `network_mode: host` allows Plex to properly discover clients on your LAN and makes DLNA work correctly
 - The `/dev/dri` device passthrough enables Intel QuickSync hardware transcoding on the i5-8500T's UHD Graphics 630
 - After starting Plex, enable hardware acceleration in Settings → Transcoder
