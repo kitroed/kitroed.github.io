@@ -50,3 +50,15 @@ nmcli dev wifi hotspot ifname wlp6s0 ssid my-hotspot password "mypassword" band 
 
 Replace `wlp6s0` with the appropriate wireless interface name, which can be found using the `ip link` command.
 Make sure to replace `"mypassword"` with a secure password of your choice.
+
+To list previously created connections, use:
+
+```bash
+nmcli connection show
+```
+
+To remove a hotspot connection when it's no longer needed, use the delete command with the connection name (usually the SSID):
+
+```bash
+nmcli connection delete "my-hotspot"
+```
