@@ -437,8 +437,8 @@ password='your-dynamic-dns-password'
 **Note**: 
 
 - Replace `your-dynamic-dns-password` with the password from Namecheap's Dynamic DNS settings
-- The `@,*` syntax updates both the root domain (@.yourdomain.com) and wildcard (*.yourdomain.com)
-- Make sure both @ and * records are enabled for Dynamic DNS in Namecheap
+- The `@,*` syntax updates both the root domain (`yourdomain.com` — `@` is the zone-file shorthand for the bare apex, not a literal subdomain) and the wildcard (`*.yourdomain.com`)
+- Make sure both the `@` and `*` A-records are enabled for Dynamic DNS in Namecheap's Advanced DNS panel
 
 Restart and enable:
 
