@@ -1706,15 +1706,17 @@ vim /opt/copyparty/config/copyparty.conf
 [/]              # create a volume at the webroot which will
   /mnt/share     # share /mnt/share (host's /srv/share/copyparty sandbox)
   accs:
-    rwmda: yourname   # only `yourname` can read/write/move/delete/admin
-    # r: *           # uncomment for LAN-anonymous read-only browsing of the sandbox
-    # rw: *          # AVOID — grants anonymous read/write. Even though the mount is
-                     # the sandbox folder, this still lets anyone wipe/replace its
-                     # contents, and quickly turns dangerous if you ever widen the
-                     # mount or NPM-expose copyparty.
+    rw: *             # anyone can read (browse/download) and write (upload).
+                      # `rw` does NOT include move (`m`), delete (`d`), or admin (`a`)
+                      # — anonymous users can drop files in but can't alter or remove
+                      # what's there. Good fit for a LAN drop-box.
+    rwmda: yourname   # `yourname` additionally gets move/delete/admin
 ```
 
-**Security note**: copyparty's example config ships with `rw: *` (anonymous read-write). With the sandbox mount above, that's bounded to `/srv/share/copyparty` rather than your whole library tree, but it still lets anyone on the LAN dump or delete files in there — and if you later widen the mount to `/srv/share` or expose the service via NPM, the same line silently turns into a much bigger problem. The login-only setting (`rwmda: yourname`, no `r: *` / `rw: *`) is safe under any future change.
+**Security note on `rw: *`**: anon `rw` is read + upload only — destructive ops (move, delete) require the named-account permissions on the second line. That's the intentional shape of this share. Two things to keep in mind anyway:
+
+- The mount is `/srv/share/copyparty`, not all of `/srv/share`, so the blast radius is bounded to that subfolder regardless of ACL.
+- Be more deliberate before NPM-exposing this. An internet-facing anonymous upload endpoint is abusable as a free file dump (warez, malware staging, etc.) — even without delete rights, attackers can fill the drive with arbitrary content under your domain. If you do expose it externally, see the layered Access List recommendation below, or drop the `*` and keep public access login-only via the proxy host.
 
 ### Start Copyparty
 
@@ -1740,7 +1742,7 @@ sudo netfilter-persistent save
 
 ### Optional: Expose via NPM
 
-**Before exposing**: confirm `accs:` does **not** include `rw: *` or `r: *`. With the proxy host below, anyone on the internet can hit the URL. If anonymous access is on, anyone can browse (and possibly write to) every file under the mounted path. Login-only (`rwmda: yourname` and nothing else) is the only safe setting for an internet-facing copyparty instance.
+**Before exposing**: anonymous `rw: *` is fine on the LAN as a drop-box, but treat NPM exposure as a different threat model. With the proxy host below, anyone on the internet can hit the URL — and anon upload (even without delete) means strangers can fill `/srv/share/copyparty` with arbitrary content under your domain. Either drop `rw: *` from the share before exposing, or layer an NPM Access List on top (see below) so basic-auth gates the proxy host before any request reaches copyparty.
 
 For external access:
 
