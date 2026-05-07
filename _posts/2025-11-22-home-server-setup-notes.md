@@ -354,13 +354,37 @@ docker logs -f default-page
 - SSL: Request new certificate, Force SSL
 
 **For catch-all subdomains:**
-- Domain Names: `yourdomain.com` (should show up once saved with *)
+- Domain Names: `*.yourdomain.com` (type the literal `*.` prefix, then press Enter to commit the entry)
 - Scheme: `http`
 - Forward Hostname/IP: `192.168.0.101`
 - Forward Port: `8090`
-- SSL: Request new certificate, Force SSL
+- SSL: **None** (see "Wildcard SSL" note below)
 
-Now any undefined subdomain will show the default page instead of an error.
+Now any undefined subdomain will show the default page over HTTP. Confirm with:
+
+```
+http://anything.yourdomain.com   # → default page
+https://anything.yourdomain.com  # → cert error (expected, see below)
+```
+
+This is fine for a generic "nothing here" landing page that exposes no data. Your defined subdomains (`plex.yourdomain.com`, `nextcloud.yourdomain.com`, etc.) still get individual Let's Encrypt certs via the standard HTTP-01 challenge — only the wildcard catch-all needs special handling.
+
+**Optional: Wildcard SSL via DNS-01**
+
+A wildcard Let's Encrypt certificate (`*.yourdomain.com`) can only be issued via the DNS-01 challenge — NPM's default HTTP-01 challenge will fail because it can't prove ownership of a name that doesn't resolve to anything specific. On the catch-all proxy host's SSL tab, switch to "Use a DNS Challenge" and select **Namecheap** from the provider list, then:
+
+1. In Namecheap, go to Profile → Tools → Namecheap API Access and enable API access. Eligibility requires 20+ domains on the account, $50 spent in the past two years, or $50 in account balance.
+2. Whitelist your server's public IP in Namecheap's API settings (the form is on the same page).
+3. Back in NPM, paste your Namecheap API username (same as your account username) and API key into the credentials form.
+
+Once provisioned, NPM renews the wildcard via DNS-01 automatically. To verify the cert is actually a wildcard:
+
+```bash
+echo | openssl s_client -connect anything.yourdomain.com:443 -servername anything.yourdomain.com 2>/dev/null \
+  | openssl x509 -noout -text \
+  | grep -A1 "Subject Alternative Name"
+# Look for: DNS:*.yourdomain.com
+```
 
 ## Dynamic DNS with Namecheap
 
