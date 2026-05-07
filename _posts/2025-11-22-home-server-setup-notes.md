@@ -513,31 +513,29 @@ From the web interface you can:
 - See connected clients
 - Enable/disable clients
 
-### Access client configurations
+### Add and download client configurations
 
-WireGuard will generate client configs with QR codes in the logs. You can also find them in:
+Unlike `linuxserver/wireguard`, wg-easy does **not** generate per-peer files on disk — clients are created and managed entirely through the web UI:
 
-```bash
-ls /opt/wireguard/config/peer*
-```
+1. Open `http://192.168.0.101:51821` and log in
+2. Click "New Client", give it a name, and save
+3. For each client, use the icons on its row to:
+   - Show the **QR code** (scan from a phone)
+   - Download the **`.conf` file** (for desktop clients)
+   - Enable/disable or delete the client
 
-Each peer directory contains:
-- `peer1.conf` - Configuration file
-- `peer1.png` - QR code for mobile apps
-
-### Port forwarding
-
-In your router, forward UDP port 51820 to 192.168.0.101 (this server).
+The underlying state is kept in `/opt/wireguard/wg0.conf` (live interface config) and `/opt/wireguard/wg0.json` (wg-easy's metadata). You generally shouldn't edit these by hand.
 
 ### Connect clients
 
 **Mobile (iOS/Android):**
-1. Install WireGuard app
-2. Scan QR code from docker logs or `/opt/wireguard/config/peer1/peer1.png`
+1. Install the WireGuard app
+2. In the wg-easy web UI, click the QR-code icon next to the client and scan it
 
 **Desktop:**
-1. Install WireGuard client
-2. Import `/opt/wireguard/config/peer1/peer1.conf`
+1. Install the WireGuard client
+2. In the wg-easy web UI, click the download icon next to the client to grab its `.conf`
+3. Import that file into the WireGuard client
 
 Once connected, you'll have access to your entire LAN (192.168.0.0/24) through the VPN.
 
@@ -764,7 +762,7 @@ sudo iptables -I INPUT -i eno1 -p tcp --dport 32400 -j ACCEPT
 sudo netfilter-persistent save
 ```
 
-Forward port 32400 in your router: External port 32400 → 192.168.0.101:32400
+Since `eno1` has a public IP, no router port forwarding is needed — the iptables rule above is sufficient.
 
 In Plex Settings:
 
