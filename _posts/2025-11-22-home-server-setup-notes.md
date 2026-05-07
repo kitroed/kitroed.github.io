@@ -1605,6 +1605,17 @@ sudo chown -R $USER:$USER /opt/copyparty
 cd /opt/copyparty
 ```
 
+### Create the sandbox share directory
+
+Rather than exposing the entirety of `/srv/share` (which holds Plex `Library/`, `CalibreLibrary/`, and `Immich/` photo backups) through copyparty, create a dedicated subfolder that copyparty will be the only thing reading or writing:
+
+```bash
+sudo mkdir -p /srv/share/copyparty
+sudo chown -R $USER:$USER /srv/share/copyparty
+```
+
+This way the blast radius of any copyparty misconfiguration is bounded to that one directory.
+
 ### Create Copyparty docker-compose.yml
 
 ```bash
@@ -1620,7 +1631,7 @@ services:
     ports:
       - "192.168.0.101:3923:3923"
     volumes:
-      - /srv/share:/mnt/share
+      - /srv/share/copyparty:/mnt/share   # sandbox — NOT /srv/share itself
       - /opt/copyparty/config:/cfg
     environment:
       LD_PRELOAD: /usr/lib/libmimalloc-secure.so.NOPE
@@ -1662,6 +1673,7 @@ vim /opt/copyparty/config/copyparty.conf
   name: File Server  # name displayed in browser title/header
   xff-src: lan  # trust X-Forwarded-For headers from private IPs (Docker/LAN)
   rproxy: 1     # 1 hop behind reverse proxy
+  no-robots     # discourage search engines from indexing if you ever NPM-expose this
 
   # q, lo: /cfg/log/%Y-%m%d.log   # log to file instead of docker
 
@@ -1671,17 +1683,26 @@ vim /opt/copyparty/config/copyparty.conf
   # ver              # show copyparty version in the controlpanel
   # grid             # show thumbnails/grid-view by default
   # theme: 2         # monokai
-  # name: datasaver  # change the server-name that's displayed in the browser
   # stats, nos-dup   # enable the prometheus endpoint, but disable the dupes counter (too slow)
-  # no-robots, force-js  # make it harder for search engines to read your server
+  # force-js         # make it harder for search engines to read your server
 
 
-  /mnt/share           # share /mnt/share (path mounted from host's /srv/share)
+[accounts]
+  yourname: REPLACE_WITH_STRONG_PASSWORD   # username: password (use `openssl rand -base64 24` for the password)
+
+
+[/]              # create a volume at the webroot which will
+  /mnt/share     # share /mnt/share (host's /srv/share/copyparty sandbox)
   accs:
-    rw: *      # everyone gets read-write access, but
-    rwmda: ed  # the user "ed" gets read-write-move-delete-admin
-
+    rwmda: yourname   # only `yourname` can read/write/move/delete/admin
+    # r: *           # uncomment for LAN-anonymous read-only browsing of the sandbox
+    # rw: *          # AVOID — grants anonymous read/write. Even though the mount is
+                     # the sandbox folder, this still lets anyone wipe/replace its
+                     # contents, and quickly turns dangerous if you ever widen the
+                     # mount or NPM-expose copyparty.
 ```
+
+**Security note**: copyparty's example config ships with `rw: *` (anonymous read-write). With the sandbox mount above, that's bounded to `/srv/share/copyparty` rather than your whole library tree, but it still lets anyone on the LAN dump or delete files in there — and if you later widen the mount to `/srv/share` or expose the service via NPM, the same line silently turns into a much bigger problem. The login-only setting (`rwmda: yourname`, no `r: *` / `rw: *`) is safe under any future change.
 
 ### Start Copyparty
 
@@ -1707,6 +1728,8 @@ sudo netfilter-persistent save
 
 ### Optional: Expose via NPM
 
+**Before exposing**: confirm `accs:` does **not** include `rw: *` or `r: *`. With the proxy host below, anyone on the internet can hit the URL. If anonymous access is on, anyone can browse (and possibly write to) every file under the mounted path. Login-only (`rwmda: yourname` and nothing else) is the only safe setting for an internet-facing copyparty instance.
+
 For external access:
 
 1. Open NPM at `http://192.168.0.101:81`
@@ -1722,6 +1745,8 @@ For external access:
    - Enable "Force SSL"
    - Accept Let's Encrypt Terms
 5. Save
+
+For an even stronger setup, add an NPM **Access List** (Username/Password basic-auth) on top of copyparty's own login, so an attacker would need to clear two layers before reaching the file UI.
 
 ## OpenSpeedTest - Network Speed Testing
 
