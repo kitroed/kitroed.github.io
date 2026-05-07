@@ -601,10 +601,16 @@ Plug in the USB drive and identify it:
 
 ```bash
 lsblk
-# Should show sdb as 14T
+# Should show sdb as 14T (with or without an existing sdb1 partition)
 ```
 
-Format the drive with ext4:
+If `lsblk` only shows `sdb` (no `sdb1` underneath), the drive has no partition table yet — create one first:
+
+```bash
+sudo parted /dev/sdb -- mklabel gpt mkpart primary ext4 1MiB 100%
+```
+
+Then format the partition with ext4:
 
 ```bash
 sudo mkfs.ext4 /dev/sdb1
@@ -920,7 +926,7 @@ lsblk
 # Should show sda as 1.9T
 ```
 
-Format the drive with ext4:
+Format the drive with ext4. Here we format the whole disk (`/dev/sda`) directly, no partition table — simpler when the drive is dedicated to a single purpose and won't be moved between systems. If you'd prefer the partitioned approach used for the Samba drive above, run `sudo parted /dev/sda -- mklabel gpt mkpart primary ext4 1MiB 100%` first and then `mkfs.ext4 /dev/sda1` (and use `/dev/sda1` everywhere `/dev/sda` appears below).
 
 ```bash
 sudo mkfs.ext4 /dev/sda
