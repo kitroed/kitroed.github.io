@@ -952,6 +952,12 @@ Add this line (replace YOUR-UUID with the actual UUID):
 UUID=YOUR-UUID  /srv/nextcloud  ext4  defaults,nofail  0  2
 ```
 
+**Why eager mount instead of `x-systemd.automount` (which we used for `/srv/share`)**: the Nextcloud Docker container bind-mounts `/srv/nextcloud` into `/var/www/html/data` *without* `:rslave` propagation (unlike Plex's `/srv/share/Library` mount). With automount, the drive only appears on first access — if Nextcloud's container starts before any process touches `/srv/nextcloud`, the bind-mount sees the empty mount-point directory instead of the real data, and Nextcloud silently writes to the system disk. Eager-mounting at boot avoids that race entirely. If you'd rather mirror the Samba drive's `x-systemd.automount` setup, also add `:rslave` to the data volume in Nextcloud's `docker-compose.yml`:
+
+```yaml
+- /srv/nextcloud:/var/www/html/data:rslave
+```
+
 Mount and set permissions:
 
 ```bash
