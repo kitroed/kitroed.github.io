@@ -1254,7 +1254,7 @@ docker logs -f wallabag
 
 ### Allow Wallabag through firewall
 
-If you haven't run the updated firewall script above (which now includes port 8082), add this rule:
+The consolidated firewall script in the [Final Firewall Configuration](#final-firewall-configuration) section below already includes port 8082. If you're setting Wallabag up first and haven't reached that section yet, add the rule manually:
 
 ```bash
 sudo iptables -A INPUT -i enp2s0 -p tcp --dport 8082 -j ACCEPT
