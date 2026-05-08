@@ -761,10 +761,9 @@ Since Plex uses `host` networking mode, Docker doesn't automatically manage fire
 sudo iptables -I INPUT -i enp2s0 -p tcp --dport 32400 -j ACCEPT
 ```
 
-Make it persistent across reboots:
+Make it persistent across reboots (`iptables-persistent` was already installed in the [Firewall with iptables](#firewall-with-iptables) section above):
 
 ```bash
-sudo apt install iptables-persistent
 sudo netfilter-persistent save
 ```
 
@@ -1012,8 +1011,8 @@ services:
     volumes:
       - /opt/nextcloud/db:/var/lib/mysql
     environment:
-      - MYSQL_ROOT_PASSWORD=SecureRootPassword123
-      - MYSQL_PASSWORD=SecurePassword123
+      - MYSQL_ROOT_PASSWORD=CHANGEME_ROOT_PASSWORD
+      - MYSQL_PASSWORD=CHANGEME_NEXTCLOUD_PASSWORD
       - MYSQL_DATABASE=nextcloud
       - MYSQL_USER=nextcloud
       - TZ=America/Chicago
@@ -1030,7 +1029,7 @@ services:
       - /opt/nextcloud/html:/var/www/html
       - /srv/nextcloud:/var/www/html/data
     environment:
-      - MYSQL_PASSWORD=SecurePassword123
+      - MYSQL_PASSWORD=CHANGEME_NEXTCLOUD_PASSWORD   # must match the db service's MYSQL_PASSWORD above
       - MYSQL_DATABASE=nextcloud
       - MYSQL_USER=nextcloud
       - MYSQL_HOST=db
@@ -1041,7 +1040,7 @@ services:
 
 **Important**: Change the passwords to secure values before starting.
 
-(Option, just run `openssl rand -base64 32` to generate secure passwords)
+(Optionally, run `openssl rand -base64 32` twice to generate two secure passwords — one for `MYSQL_ROOT_PASSWORD` and one shared between the db service's `MYSQL_PASSWORD` and the app service's `MYSQL_PASSWORD`.)
 
 ### Start Nextcloud
 
@@ -1230,7 +1229,7 @@ services:
       - SYMFONY__ENV__DATABASE_DRIVER=pdo_sqlite
       - SYMFONY__ENV__DATABASE_NAME=wallabag
       - SYMFONY__ENV__DOMAIN_NAME=https://wallabag.yourdomain.com
-      - SYMFONY__ENV__SERVER_NAME="My Wallabag"
+      - SYMFONY__ENV__SERVER_NAME=My Wallabag   # no inner quotes — YAML's `- "key=value"` form already passes the value verbatim, so quoting "My Wallabag" inside would propagate the literal quotes to the container
     ports:
       - "192.168.0.101:8082:80"
     volumes:
@@ -1970,7 +1969,7 @@ services:
 - `WATCHTOWER_MONITOR_ONLY=true`: Only notify, don't update
 - `WATCHTOWER_NOTIFICATIONS`: Send notifications via ntfy
 - `WATCHTOWER_NOTIFICATIONS_LEVEL=info`: Notify when updates are found (standard log level for findings)
-- `WATCHTOWER_DISABLE_CONTAINERS`: Exclude dependency containers (Immich's postgres and machine-learning) from monitoring
+- `WATCHTOWER_DISABLE_CONTAINERS`: Exclude dependency containers (Immich's postgres and machine-learning) from monitoring. **Verify the names match your installation** — recent Immich releases sometimes use hyphens (`immich-postgres`) instead of underscores. Run `docker ps --format '{{.Names}}' | grep immich` and update this list to match what's actually running.
 - `WATCHTOWER_SCHEDULE`: Cron schedule (5 PM daily)
 - `WATCHTOWER_CLEANUP=true`: Remove old images after updates (if you enable auto-update later)
 
@@ -2109,7 +2108,7 @@ sudo netfilter-persistent save
 
 ## Moving Docker Data to /srv
 
-If like me, you used Debian's default "Server" partioning scheme on a 1TB drive, your `/var` partition is small (22GB) and filling up (100% usage), while `/srv` has plenty of space (800GB+). Since Docker stores images and containers in `/var/lib/docker` by default, we should move this to `/srv`.
+If like me, you used Debian's default "Server" partitioning scheme on a 1TB drive, your `/var` partition is small (22GB) and filling up (100% usage), while `/srv` has plenty of space (800GB+). Since Docker stores images and containers in `/var/lib/docker` by default, we should move this to `/srv`.
 
 ### 1. Stop Docker
 
